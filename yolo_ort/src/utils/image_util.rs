@@ -36,10 +36,20 @@ pub struct ImageSize {
     pub height: u32,
 }
 
+#[derive(Clone, Copy)]
+pub struct LetterboxInfo {
+    pub scale: f32,
+    pub pad_left: u32,
+    pub pad_top: u32,
+    pub orig_width: u32,
+    pub orig_height: u32,
+}
+
 #[derive(Clone)]
 pub struct LoadedImageU8 {
     pub image_array: ArrayBase<OwnedRepr<u8>, Dim<[usize; 4]>>,
     pub size: ImageSize,
+    pub letterbox_info: LetterboxInfo,
 }
 
 #[derive(Clone)]
@@ -95,9 +105,18 @@ pub fn load_image_u8(
         height: target_height,
     };
 
+    let letterbox_info = LetterboxInfo {
+        scale,
+        pad_left,
+        pad_top,
+        orig_width,
+        orig_height,
+    };
+
     Ok(LoadedImageU8 {
         image_array: array,
         size,
+        letterbox_info,
     })
 }
 

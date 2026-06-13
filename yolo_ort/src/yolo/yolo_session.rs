@@ -5,7 +5,7 @@ use std::path::Path;
 use super::yolo_utils::*;
 use crate::{
     dnn::ort_inference_session::OrtInferenceSession,
-    utils::image_util::{LoadedImageU8, load_image_u8, normalize_image_f32},
+    utils::image_util::{LetterboxInfo, LoadedImageU8, load_image_u8, normalize_image_f32},
 };
 
 pub struct YoloSession {
@@ -120,28 +120,30 @@ impl YoloSession {
         let loaded_image: LoadedImageU8 =
             load_image_u8(image_path, self.input_size).expect("Failed to preprocess image");
 
-        let interleaved_data: Vec<u8> = loaded_image
-            .image_array
-            .view()
-            .to_shape((
-                3,
-                loaded_image.size.height as usize,
-                loaded_image.size.width as usize,
-            ))
-            .unwrap()
-            .permuted_axes((1, 2, 0))
-            .iter()
-            .cloned()
-            .collect();
+        let info = &loaded_image.letterbox_info;
+        let original_image = image::open(image_path)
+            .expect("Failed to open original image")
+            .to_rgb8();
 
-        let img = RgbImage::from_raw(
-            loaded_image.size.width,
-            loaded_image.size.height,
-            interleaved_data,
-        )
-        .expect("Failed to create image from raw data");
+        assert_eq!(original_image.width(), info.orig_width);
+        assert_eq!(original_image.height(), info.orig_height);
 
-        (img, loaded_image)
+        (original_image, loaded_image)
+    }
+
+    fn inverse_letterbox(boxes: Vec<BoundingBox>, info: &LetterboxInfo) -> Vec<BoundingBox> {
+        let orig_w = info.orig_width as f32;
+        let orig_h = info.orig_height as f32;
+        boxes
+            .into_iter()
+            .map(|bbox| BoundingBox {
+                x1: ((bbox.x1 - info.pad_left as f32) / info.scale).clamp(0.0, orig_w),
+                y1: ((bbox.y1 - info.pad_top as f32) / info.scale).clamp(0.0, orig_h),
+                x2: ((bbox.x2 - info.pad_left as f32) / info.scale).clamp(0.0, orig_w),
+                y2: ((bbox.y2 - info.pad_top as f32) / info.scale).clamp(0.0, orig_h),
+                ..bbox
+            })
+            .collect()
     }
 
     pub fn save_outputs(
@@ -176,6 +178,7 @@ impl YoloSession {
 
     pub fn process_image(&mut self, image_path: &str) {
         let (original_image, loaded_image) = self.load_and_preprocess_image(image_path);
+        let letterbox_info = loaded_image.letterbox_info;
 
         let normalized_image = normalize_image_f32(&loaded_image, None, None);
         let mut inferred_boxes = self.run_inference(normalized_image.image_array);
@@ -186,10 +189,11 @@ impl YoloSession {
             inferred_boxes = nms(inferred_boxes, 0.45);
         }
 
+        let inferred_boxes = Self::inverse_letterbox(inferred_boxes, &letterbox_info);
+
         let result_image = draw_boxes(
             &DynamicImage::ImageRgb8(original_image),
             &inferred_boxes,
-            self.input_size,
         );
 
         self.save_outputs(result_image, inferred_boxes, image_path, None);

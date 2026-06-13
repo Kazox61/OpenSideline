@@ -48,21 +48,20 @@ pub fn nms(boxes: Vec<BoundingBox>, iou_threshold: f32) -> Vec<BoundingBox> {
 }
 
 
-pub fn draw_boxes(image: &DynamicImage, boxes: &Vec<BoundingBox>, input_size: (u32, u32)) -> RgbImage {
+pub fn draw_boxes(image: &DynamicImage, boxes: &Vec<BoundingBox>) -> RgbImage {
     let (img_width, img_height) = (image.width(), image.height());
     let mut dt = DrawTarget::new(img_width as i32, img_height as i32);
 
-    // Generate or retrieve the class colors based on the number of unique class_ids in the boxes
     let num_classes = boxes.iter().map(|bbox| bbox.class_id).max().unwrap_or(0) + 1;
     let class_colors = generate_color_for_classes(num_classes);
 
     for bbox in boxes {
         let mut pb = PathBuilder::new();
         pb.rect(
-            bbox.x1 * img_width as f32 / input_size.0 as f32,
-            bbox.y1 * img_height as f32 / input_size.1 as f32,
-            (bbox.x2 - bbox.x1) * img_width as f32 / input_size.0 as f32,
-            (bbox.y2 - bbox.y1) * img_height as f32 / input_size.1 as f32,
+            bbox.x1,
+            bbox.y1,
+            bbox.x2 - bbox.x1,
+            bbox.y2 - bbox.y1,
         );
         let path = pb.finish();
 
