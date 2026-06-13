@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["virtual_camera","yolo_ort"]

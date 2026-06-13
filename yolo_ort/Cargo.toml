@@ -1,0 +1,11 @@
+[package]
+name = "yolo_ort"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+image = "0.25.9"
+ndarray = "0.17.2"
+ort = { version = "2.0.0-rc.11", features = ["ndarray"] }
+raqote = { version = "0.8.5", default-features = false }
+walkdir = "2.5.0"
