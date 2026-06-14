@@ -72,6 +72,7 @@ pub fn detect_players(
     player_class: usize,
     conf_threshold: f32,
     roi: Option<[u32; 4]>,
+    on_frame: impl Fn(u32, u32),
 ) -> Result<(Vec<Option<FrameTarget>>, Vec<u32>, f64, [u32; 2], u32), Box<dyn std::error::Error>> {
     ffmpeg::init()?;
 
@@ -107,6 +108,8 @@ pub fn detect_players(
         pre_h,
         ffmpeg::software::scaling::flag::Flags::BILINEAR,
     )?;
+
+    let estimated_processed = (total_frames / stride.max(1)).max(1);
 
     let mut targets: Vec<Option<FrameTarget>> = Vec::new();
     let mut frame_indices: Vec<u32> = Vec::new();
@@ -181,10 +184,7 @@ pub fn detect_players(
 
                 targets.push(frame_target(&foot_points, &confs, 0.1));
                 frame_indices.push(frame_idx);
-
-                if frame_indices.len() % 25 == 0 {
-                    eprint!("\rDetecting… frame {frame_idx}/{total_frames}");
-                }
+                on_frame(frame_indices.len() as u32, estimated_processed);
             }
             frame_idx += 1;
         }

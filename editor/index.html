@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="/src/styles.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>OpenSideline</title>
+        <script type="module" src="/src/main.ts" defer></script>
+    </head>
+
+    <body>
+        <main class="container">
+            <h1 class="title">OpenSideline</h1>
+            <p class="description">
+                Generate a virtual camera path from a football video.
+            </p>
+
+            <div class="form-group">
+                <label class="label" for="video_path">Video File</label>
+                <div class="input-row">
+                    <input
+                        id="video_path"
+                        class="input"
+                        placeholder="No file selected…"
+                        readonly
+                    />
+                    <button id="video_select" class="btn btn-outline">
+                        Browse
+                    </button>
+                </div>
+            </div>
+
+            <div id="progressContainer" style="display: none">
+                <div class="form-group">
+                    <div class="progress-header">
+                        <label class="label">Progress</label>
+                        <span id="progressText" class="muted-text"></span>
+                    </div>
+                    <div class="progress">
+                        <div id="progressBar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="logContainer" style="display: none">
+                <div class="form-group">
+                    <label class="label">Log</label>
+                    <pre id="output" class="log-output"></pre>
+                </div>
+            </div>
+
+            <button id="start_button" class="btn btn-primary">
+                Generate
+            </button>
+        </main>
+    </body>
+</html>

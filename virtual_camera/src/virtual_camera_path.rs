@@ -1,6 +1,17 @@
+use crate::{
+    detector::detect_players, path_generator::PathConfig,
+    path_generator::compute_virtual_camera_path,
+};
 use std::path::Path;
+use yolo_ort::yolo::yolo_session::YoloSession;
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
+pub struct GenerateProgress {
+    pub percentage: f64,
+    pub step: String,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VirtualCameraSample {
@@ -47,6 +58,67 @@ impl VirtualCameraPath {
         let file = std::fs::File::create(path)?;
         serde_json::to_writer(file, self)?;
         Ok(())
+    }
+
+    pub fn generate(
+        video_path: &Path,
+        on_progress: impl Fn(GenerateProgress) + Send + 'static,
+    ) -> VirtualCameraPath {
+        on_progress(GenerateProgress {
+            percentage: 0.0,
+            step: "Loading model...".into(),
+        });
+
+        let mut yolo = YoloSession::new(
+            Path::new("models/football.onnx"),
+            (640, 640),
+            true,
+            "yolov10".into(),
+        )
+        .unwrap();
+
+        on_progress(GenerateProgress {
+            percentage: 20.0,
+            step: "Detecting players...".into(),
+        });
+
+        let (targets, indices, fps, pano_size, total) =
+            detect_players(video_path, &mut yolo, 6, 2, 0.3, None, |frame, total| {
+                let pct = 20.0 + (frame as f64 / total.max(1) as f64) * 50.0;
+                on_progress(GenerateProgress {
+                    percentage: pct,
+                    step: format!("Detecting players… {frame}/{total}"),
+                });
+            })
+            .unwrap();
+
+        on_progress(GenerateProgress {
+            percentage: 70.0,
+            step: "Computing camera path...".into(),
+        });
+
+        let samples = compute_virtual_camera_path(
+            &targets,
+            &indices,
+            pano_size,
+            fps,
+            total,
+            &PathConfig::default(),
+        );
+
+        on_progress(GenerateProgress {
+            percentage: 100.0,
+            step: "Done!".into(),
+        });
+
+        VirtualCameraPath::new(
+            video_path.to_str().unwrap().into(),
+            pano_size,
+            fps,
+            total,
+            [16, 9],
+            samples,
+        )
     }
 
     pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {

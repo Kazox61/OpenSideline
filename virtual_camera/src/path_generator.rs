@@ -1,7 +1,5 @@
 use crate::{
-    detector::FrameTarget,
-    smooth_damp::SmoothDamp,
-    virtual_camera_path::VirtualCameraSample,
+    detector::FrameTarget, smooth_damp::SmoothDamp, virtual_camera_path::VirtualCameraSample,
 };
 
 #[derive(Debug, Clone)]
@@ -82,7 +80,9 @@ pub fn compute_virtual_camera_path(
     let n = targets.len();
 
     if n == 0 {
-        eprintln!("[compute_virtual_camera_path] WARNING: no targets — returning centered default path");
+        eprintln!(
+            "[compute_virtual_camera_path] WARNING: no targets — returning centered default path"
+        );
         let step = (fps as f32 / config.keyframe_rate as f32).round().max(1.0) as u32;
         let mut kf_indices: Vec<u32> = (0..total_frames).step_by(step as usize).collect();
         if !kf_indices.is_empty() && kf_indices.last() != Some(&(total_frames - 1)) {
@@ -95,13 +95,22 @@ pub fn compute_virtual_camera_path(
         let win_w = win_w.min(win_h * ar);
         return kf_indices
             .into_iter()
-            .map(|i| VirtualCameraSample { i, cx, cy, w: win_w, h: win_h })
+            .map(|i| VirtualCameraSample {
+                i,
+                cx,
+                cy,
+                w: win_w,
+                h: win_h,
+            })
             .collect();
     }
 
     let tx_raw: Vec<Option<f32>> = targets.iter().map(|t| t.as_ref().map(|t| t.tx)).collect();
     let ty_raw: Vec<Option<f32>> = targets.iter().map(|t| t.as_ref().map(|t| t.ty)).collect();
-    let sp_raw: Vec<Option<f32>> = targets.iter().map(|t| t.as_ref().map(|t| t.spread)).collect();
+    let sp_raw: Vec<Option<f32>> = targets
+        .iter()
+        .map(|t| t.as_ref().map(|t| t.spread))
+        .collect();
 
     let tx = match fill_gaps(&tx_raw) {
         Some(v) => v,
@@ -116,7 +125,10 @@ pub fn compute_virtual_camera_path(
     // time step between processed frames (accounts for detection stride)
     let dt = if frame_indices.len() > 1 {
         let median_gap = {
-            let mut gaps: Vec<f32> = frame_indices.windows(2).map(|w| (w[1] - w[0]) as f32).collect();
+            let mut gaps: Vec<f32> = frame_indices
+                .windows(2)
+                .map(|w| (w[1] - w[0]) as f32)
+                .collect();
             gaps.sort_by(|a, b| a.partial_cmp(b).unwrap());
             gaps[gaps.len() / 2]
         };
