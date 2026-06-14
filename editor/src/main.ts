@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -47,6 +47,10 @@ let videoWrapper: HTMLDivElement | null;
 let video: HTMLVideoElement | null;
 let playPauseButton: HTMLButtonElement | null;
 let scrubber: HTMLInputElement | null;
+let exportButton: HTMLButtonElement | null;
+let exportContainer: HTMLDivElement | null;
+let exportBar: HTMLDivElement | null;
+let exportText: HTMLSpanElement | null;
 
 // ── viewer state ──────────────────────────────────────────────────────────────
 
@@ -209,6 +213,51 @@ function showViewer(data: VirtualCameraData) {
   if (viewerModeSelect) viewerModeSelect.value = "panorama";
 }
 
+// ── export logic ──────────────────────────────────────────────────────────────
+
+async function exportVideo() {
+  if (!vcamData || !exportButton) return;
+
+  const outputPath = await save({
+    defaultPath: vcamData.source.replace(/\.[^.]+$/, "_virtual.mp4"),
+    filters: [{ name: "MP4 Video", extensions: ["mp4"] }],
+  });
+  if (!outputPath) return;
+
+  exportButton.disabled = true;
+  if (exportContainer) exportContainer.style.display = "block";
+  if (exportBar) {
+    exportBar.style.width = "0%";
+    exportBar.classList.remove("success");
+  }
+
+  const unlisten: UnlistenFn = await listen<TaskProgress>(
+    "export-progress",
+    (e) => {
+      const { percentage, step } = e.payload;
+      if (exportBar) exportBar.style.width = `${percentage}%`;
+      if (exportText) exportText.textContent = step;
+      if (percentage >= 100) {
+        if (exportBar) exportBar.classList.add("success");
+        if (exportButton) exportButton.disabled = false;
+        unlisten();
+      }
+    },
+  );
+
+  try {
+    await invoke("export_virtual_camera", {
+      vcam: vcamData,
+      outputPath,
+    });
+  } catch (e) {
+    console.error("Export failed:", e);
+    if (exportText) exportText.textContent = `Error: ${e}`;
+    if (exportButton) exportButton.disabled = false;
+    unlisten();
+  }
+}
+
 // ── generation logic ──────────────────────────────────────────────────────────
 
 async function selectVideo() {
@@ -302,6 +351,10 @@ window.addEventListener("DOMContentLoaded", () => {
   video = document.querySelector<HTMLVideoElement>("#viewerVideo");
   playPauseButton = document.querySelector<HTMLButtonElement>("#playPause");
   scrubber = document.querySelector<HTMLInputElement>("#scrubber");
+  exportButton = document.querySelector<HTMLButtonElement>("#export_button");
+  exportContainer = document.querySelector<HTMLDivElement>("#exportContainer");
+  exportBar = document.querySelector<HTMLDivElement>("#exportBar");
+  exportText = document.querySelector<HTMLSpanElement>("#exportText");
 
   // wire up events
   videoSelectButton?.addEventListener("click", (e) => {
@@ -330,6 +383,11 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!video) return;
     if (video.paused) video.play();
     else video.pause();
+  });
+
+  exportButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    exportVideo();
   });
 
   scrubber?.addEventListener("mousedown", () => {

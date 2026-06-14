@@ -1,7 +1,7 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
-use virtual_camera::VirtualCameraPath;
+use virtual_camera::{export_video, VirtualCameraPath};
 
 #[tauri::command]
 async fn generate_virtual_camera(
@@ -27,6 +27,36 @@ async fn generate_virtual_camera(
     })
     .await
     .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn export_virtual_camera(
+    app: AppHandle,
+    vcam: VirtualCameraPath,
+    output_path: String,
+) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        let video_path = vcam.source.clone();
+        let total = vcam.frame_count;
+        export_video(
+            &vcam,
+            Path::new(&video_path),
+            Path::new(&output_path),
+            |done, _total| {
+                app.emit(
+                    "export-progress",
+                    serde_json::json!({
+                        "percentage": (done as f64 / total as f64) * 100.0,
+                        "step": format!("Exporting frame {done}/{total}"),
+                    }),
+                )
+                .ok();
+            },
+        )
+        .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -184,7 +214,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             generate_virtual_camera,
-            load_virtual_camera
+            load_virtual_camera,
+            export_virtual_camera
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

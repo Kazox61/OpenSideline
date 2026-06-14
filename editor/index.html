@@ -65,6 +65,21 @@
                         <option value="virtual">Virtual Camera</option>
                     </select>
                     <span id="timeDisplay" class="muted-text">0:00 / 0:00</span>
+                    <button id="export_button" class="btn btn-outline btn-sm">
+                        Export
+                    </button>
+                </div>
+
+                <div id="exportContainer" style="display: none">
+                    <div class="form-group">
+                        <div class="progress-header">
+                            <label class="label">Export</label>
+                            <span id="exportText" class="muted-text"></span>
+                        </div>
+                        <div class="progress">
+                            <div id="exportBar" class="progress-bar"></div>
+                        </div>
+                    </div>
                 </div>
                 <div id="videoWrapper">
                     <video id="viewerVideo" preload="auto"></video>
