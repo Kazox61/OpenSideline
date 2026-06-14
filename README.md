@@ -66,7 +66,7 @@ cd editor
 npm run tauri build
 ```
 
-Produces a native app bundle in `editor/src-tauri/target/release/bundle/`.
+Produces a native app bundle in `target/release/bundle/`.
 
 ## The `.vcam.json` format
 
