@@ -1,4 +1,4 @@
-use image::{imageops::FilterType, ImageBuffer, Pixel, Rgb, ImageError};
+use image::{imageops::FilterType, ImageBuffer, Pixel, Rgb, RgbImage, ImageError};
 use ndarray::{Array, ArrayBase, Dim, OwnedRepr, s};
 use raqote::SolidSource;
 use std::path::Path;
@@ -65,18 +65,8 @@ impl fmt::Debug for ImageSize {
 }
 
 
-pub fn load_image_u8(
-    image_path: &str,
-    target_size: (u32, u32)
-) -> Result<LoadedImageU8, ImageLoadError> {
-
-    if !Path::new(image_path).exists() {
-        return Err(ImageLoadError::InvalidPath(image_path.to_string()));
-    }
-
-    let image = image::open(image_path).map_err(ImageLoadError::from)?;
-
-    let (orig_width, orig_height) = (image.width(), image.height());
+fn letterbox_rgb(src: &RgbImage, target_size: (u32, u32)) -> LoadedImageU8 {
+    let (orig_width, orig_height) = (src.width(), src.height());
     let (target_width, target_height) = target_size;
 
     let scale = (target_width as f32 / orig_width as f32)
@@ -85,39 +75,41 @@ pub fn load_image_u8(
     let new_width = (orig_width as f32 * scale).round() as u32;
     let new_height = (orig_height as f32 * scale).round() as u32;
 
-    let resized_image = image.resize_exact(new_width, new_height, FilterType::Nearest).to_rgb8();
+    let resized = image::imageops::resize(src, new_width, new_height, FilterType::Nearest);
 
     let pad_left = (target_width - new_width) / 2;
     let pad_top = (target_height - new_height) / 2;
 
-    let mut padded_image = ImageBuffer::from_pixel(target_width, target_height, Rgb([112, 112, 112]));
-    for (x, y, pixel) in resized_image.enumerate_pixels() {
-        padded_image.put_pixel(x + pad_left, y + pad_top, *pixel);
+    let mut padded = ImageBuffer::from_pixel(target_width, target_height, Rgb([112, 112, 112]));
+    for (x, y, pixel) in resized.enumerate_pixels() {
+        padded.put_pixel(x + pad_left, y + pad_top, *pixel);
     }
 
-    let array = Array::from_shape_fn((1, 3, target_height as usize, target_width as usize), |(_, c, j, i)| {
-        let pixel = padded_image.get_pixel(i as u32, j as u32);
-        pixel.channels()[c]
-    });
+    let array = Array::from_shape_fn(
+        (1, 3, target_height as usize, target_width as usize),
+        |(_, c, j, i)| padded.get_pixel(i as u32, j as u32).channels()[c],
+    );
 
-    let size = ImageSize {
-        width: target_width,
-        height: target_height,
-    };
-
-    let letterbox_info = LetterboxInfo {
-        scale,
-        pad_left,
-        pad_top,
-        orig_width,
-        orig_height,
-    };
-
-    Ok(LoadedImageU8 {
+    LoadedImageU8 {
         image_array: array,
-        size,
-        letterbox_info,
-    })
+        size: ImageSize { width: target_width, height: target_height },
+        letterbox_info: LetterboxInfo { scale, pad_left, pad_top, orig_width, orig_height },
+    }
+}
+
+pub fn load_image_u8(
+    image_path: &str,
+    target_size: (u32, u32)
+) -> Result<LoadedImageU8, ImageLoadError> {
+    if !Path::new(image_path).exists() {
+        return Err(ImageLoadError::InvalidPath(image_path.to_string()));
+    }
+    let image = image::open(image_path).map_err(ImageLoadError::from)?.to_rgb8();
+    Ok(letterbox_rgb(&image, target_size))
+}
+
+pub fn load_frame_u8(frame: &RgbImage, target_size: (u32, u32)) -> LoadedImageU8 {
+    letterbox_rgb(frame, target_size)
 }
 
 

@@ -41,7 +41,6 @@ impl YoloSession {
             .expect("Failed to extract tensor")
             .to_owned();
         let mut boxes = Vec::new();
-        println!("output shape: {:?}", output.shape());
 
         let original_output_shape = output.shape();
 
@@ -191,10 +190,7 @@ impl YoloSession {
 
         let inferred_boxes = Self::inverse_letterbox(inferred_boxes, &letterbox_info);
 
-        let result_image = draw_boxes(
-            &DynamicImage::ImageRgb8(original_image),
-            &inferred_boxes,
-        );
+        let result_image = draw_boxes(&DynamicImage::ImageRgb8(original_image), &inferred_boxes);
 
         self.save_outputs(result_image, inferred_boxes, image_path, None);
     }
