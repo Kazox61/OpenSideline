@@ -6,7 +6,6 @@ use std::path::Path;
 use yolo_ort::yolo::yolo_session::YoloSession;
 
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 pub struct GenerateProgress {
     pub percentage: f64,

@@ -1,6 +1,5 @@
 use std::path::Path;
-use virtual_camera::{PathConfig, VirtualCameraPath, compute_virtual_camera_path, detect_players};
-use yolo_ort::yolo::yolo_session::YoloSession;
+use virtual_camera::VirtualCameraPath;
 
 fn main() {
     let video_path = Path::new("test_video.mp4");

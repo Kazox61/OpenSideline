@@ -49,9 +49,41 @@
                 </div>
             </div>
 
-            <button id="start_button" class="btn btn-primary">
-                Generate
-            </button>
+            <div class="button-row">
+                <button id="start_button" class="btn btn-primary">
+                    Generate
+                </button>
+                <button id="load_vcam" class="btn btn-outline">
+                    Load .vcam.json
+                </button>
+            </div>
+
+            <div id="viewerSection" style="display: none">
+                <div class="viewer-toolbar">
+                    <select id="viewerMode" class="select">
+                        <option value="panorama">Panorama</option>
+                        <option value="virtual">Virtual Camera</option>
+                    </select>
+                    <span id="timeDisplay" class="muted-text">0:00 / 0:00</span>
+                </div>
+                <div id="videoWrapper">
+                    <video id="viewerVideo" preload="auto"></video>
+                </div>
+                <div class="playback-controls">
+                    <button id="playPause" class="btn btn-outline btn-sm">
+                        Play
+                    </button>
+                    <input
+                        id="scrubber"
+                        type="range"
+                        class="scrubber"
+                        min="0"
+                        max="100"
+                        step="0.001"
+                        value="0"
+                    />
+                </div>
+            </div>
         </main>
     </body>
 </html>
