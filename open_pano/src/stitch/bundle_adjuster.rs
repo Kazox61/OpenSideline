@@ -246,7 +246,7 @@ impl<'a> IncrementalBundleAdjuster<'a> {
                 best_err = err_stat.avg;
                 state = new_state;
             }
-            if nr_non_decrease > 5 {
+            if nr_non_decrease > 10 {
                 break;
             }
             itr += 1;

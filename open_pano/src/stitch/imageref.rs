@@ -19,6 +19,17 @@ impl ImageRef {
         }
     }
 
+    pub fn from_mat(mat: Mat32f) -> Self {
+        let width = mat.width() as i32;
+        let height = mat.height() as i32;
+        ImageRef {
+            fname: String::new(),
+            img: Some(mat),
+            width,
+            height,
+        }
+    }
+
     pub fn load(&mut self) {
         if self.img.is_some() {
             return;

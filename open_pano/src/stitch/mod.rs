@@ -1,4 +1,5 @@
 pub mod blender;
+pub mod stitch_transform;
 pub mod bundle_adjuster;
 pub mod camera;
 pub mod camera_estimator;

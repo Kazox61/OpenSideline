@@ -176,6 +176,15 @@ impl<'a> ExtremaDetector<'a> {
             nows += offset.z.round() as isize;
         }
 
+        // Final bounds check — the loop may have updated coords in its last iteration
+        // without ever reaching the guard at the top of the next one.
+        if !between(nowx, 1, w as isize - 1)
+            || !between(nowy, 1, h as isize - 1)
+            || !between(nows, 1, nscale as isize - 2)
+        {
+            return false;
+        }
+
         let dextr = offset.dot(&delta);
         let dextr =
             *now_pyramid[nows as usize].at2(nowy as usize, nowx as usize) as f64 + dextr / 2.0;

@@ -6,6 +6,7 @@ use crate::stitch::camera::Camera;
 use crate::stitch::camera_estimator::CameraEstimator;
 use crate::stitch::homography::Homography;
 use crate::stitch::match_info::{MatchInfo, Shape2D};
+use crate::stitch::stitch_transform::StitchTransform;
 use crate::stitch::stitcher_image::{ConnectedImages, ImageComponent, ProjectionMethod};
 use crate::stitch::stitcherbase::StitcherBase;
 use crate::stitch::transform_estimate::TransformEstimation;
@@ -50,6 +51,63 @@ impl Stitcher {
             s.bundle.component[i].imgptr = &mut s.base.imgs[i] as *mut _;
         }
         s
+    }
+
+    /// Build from in-memory frames (no file I/O). Used by the video stitcher.
+    pub fn from_mats(mats: Vec<Mat32f>) -> Self {
+        let base = StitcherBase::from_mats(mats);
+        let n = base.imgs.len();
+        let mut bundle = ConnectedImages::new();
+        bundle.component = (0..n)
+            .map(|_| ImageComponent {
+                homo: Homography::identity(),
+                homo_inv: Homography::identity(),
+                imgptr: std::ptr::null_mut(),
+                range: crate::stitch::stitcher_image::ComponentRange {
+                    min: Vec2D::new(0.0, 0.0),
+                    max: Vec2D::new(0.0, 0.0),
+                },
+            })
+            .collect();
+        let mut s = Stitcher {
+            base,
+            bundle,
+            pairwise_matches: Vec::new(),
+        };
+        for i in 0..n {
+            s.bundle.component[i].imgptr = &mut s.base.imgs[i] as *mut _;
+        }
+        s
+    }
+
+    /// Run the expensive pipeline (features + matching + cameras) and return
+    /// a reusable `StitchTransform`, or `None` if images could not be matched.
+    pub fn compute_transform(&mut self) -> Option<StitchTransform> {
+        self.base.calc_feature();
+        let n = self.base.imgs.len();
+        self.pairwise_matches = vec![(0..n).map(|_| MatchInfo::new()).collect::<Vec<_>>(); n];
+        let cfg = config();
+        let matched = if cfg.ordered_input {
+            self.linear_pairwise_match()
+        } else {
+            self.pairwise_match();
+            true
+        };
+        if !matched {
+            return None;
+        }
+        self.base.free_feature();
+        self.assign_center();
+        if cfg.estimate_camera {
+            self.estimate_camera();
+            self.bundle.proj_method = ProjectionMethod::Spherical;
+        } else {
+            self.build_linear_simple();
+            self.bundle.proj_method = ProjectionMethod::Flat;
+        }
+        self.pairwise_matches.clear();
+        self.bundle.update_proj_range();
+        Some(StitchTransform::from_bundle(&self.bundle))
     }
 
     pub fn build(&mut self) -> Mat32f {
@@ -130,7 +188,7 @@ impl Stitcher {
         }
     }
 
-    fn linear_pairwise_match(&mut self) {
+    fn linear_pairwise_match(&mut self) -> bool {
         let n = self.base.imgs.len();
         let all_matches: Vec<_> = {
             let pwmatcher = PairWiseMatcher::new(&self.base.feats);
@@ -144,9 +202,11 @@ impl Stitcher {
         for (i, next, match_data) in all_matches {
             let ok = self.process_match(match_data, i, next);
             if !ok && i != n - 1 {
-                panic!("Image {} and {} don't match", i, next);
+                eprintln!("Warning: image {} and {} don't match", i, next);
+                return false;
             }
         }
+        true
     }
 
     fn assign_center(&mut self) {

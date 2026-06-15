@@ -20,6 +20,16 @@ impl StitcherBase {
         }
     }
 
+    pub fn from_mats(mats: Vec<crate::mat::Mat32f>) -> Self {
+        let imgs = mats.into_iter().map(ImageRef::from_mat).collect();
+        StitcherBase {
+            imgs,
+            feats: Vec::new(),
+            keypoints: Vec::new(),
+            detector: Box::new(SiftDetector),
+        }
+    }
+
     pub fn calc_feature(&mut self) {
         let n = self.imgs.len();
         self.feats.resize(n, Vec::new());
