@@ -10,3 +10,4 @@ path = "src/main.rs"
 [dependencies]
 open_pano   = { path = "../open_pano" }
 ffmpeg-next = "8"
+rayon       = "1"

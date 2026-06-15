@@ -1,5 +1,5 @@
-use ffmpeg_next as ffmpeg;
 use ffmpeg::format::Pixel;
+use ffmpeg_next as ffmpeg;
 
 pub struct VideoWriter {
     octx: ffmpeg::format::context::Output,
@@ -37,7 +37,7 @@ impl VideoWriter {
         let out_time_base = ffmpeg::Rational::new(fps.1, fps.0);
         octx.add_stream(codec)?;
 
-        let mut enc = {
+        let enc = {
             let mut b = ffmpeg::codec::context::Context::new_with_codec(codec)
                 .encoder()
                 .video()?;

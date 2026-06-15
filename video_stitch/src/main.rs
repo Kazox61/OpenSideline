@@ -2,6 +2,7 @@ mod converter;
 mod stitcher_state;
 mod video_reader;
 mod video_writer;
+mod warp_map;
 
 use converter::{frame_to_mat32f, mat32f_to_frame};
 use ffmpeg_next as ffmpeg;
