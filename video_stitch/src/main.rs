@@ -6,7 +6,7 @@ mod warp_map;
 
 use converter::{frame_to_mat32f, mat32f_to_frame};
 use ffmpeg_next as ffmpeg;
-use open_pano::config::{init_config, init_config_default};
+use open_pano::config::init_config_default;
 use stitcher_state::StitcherState;
 use std::sync::atomic::{AtomicBool, Ordering};
 use video_reader::VideoReader;
@@ -37,7 +37,7 @@ fn fps_as_f64(r: ffmpeg::Rational) -> f64 {
 
 fn print_usage(bin: &str) {
     eprintln!(
-        "Usage: {} [config.cfg] --keyframe-interval N <video1> <video2> ... -o <output.mp4>",
+        "Usage: {} --keyframe-interval N <video1> <video2> ... -o <output.mp4>",
         bin
     );
 }
@@ -52,12 +52,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let raw: Vec<String> = std::env::args().collect();
     let bin = &raw[0];
     let mut args = raw[1..].iter().peekable();
-
-    let config_path = if args.peek().map(|s| s.ends_with(".cfg")).unwrap_or(false) {
-        args.next().map(|s| s.as_str())
-    } else {
-        None
-    };
 
     let mut keyframe_interval: usize = 1800;
     let mut output_path = String::new();
@@ -88,13 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    if let Some(path) = config_path {
-        init_config(path);
-    } else if std::path::Path::new("config.cfg").exists() {
-        init_config("config.cfg");
-    } else {
-        init_config_default();
-    }
+    init_config_default();
 
     // ── Open readers ───────────────────────────────────────────────────────────
     let mut readers: Vec<VideoReader> = input_paths
@@ -161,7 +149,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!(
                     "[video_stitch] ERROR: could not compute initial transform.\n\
                      Are the input videos overlapping? Try with still frames first: \
-                     `cargo run -p open_pano -- config.cfg frame0.png frame1.png`"
+                     `cargo run -p open_pano -- frame0.png frame1.png`"
                 );
                 std::process::exit(1);
             }

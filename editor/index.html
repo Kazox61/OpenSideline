@@ -7,133 +7,173 @@
         <title>OpenSideline</title>
         <script type="module" src="/src/main.ts" defer></script>
     </head>
-
     <body>
-        <main class="container">
-            <h1 class="title">OpenSideline</h1>
-            <p class="description">
-                Generate a virtual camera path from a football video.
-            </p>
+        <div class="app-layout">
 
-            <div class="form-group">
-                <label class="label" for="video_path">Video File</label>
-                <div class="input-row">
-                    <input
-                        id="video_path"
-                        class="input"
-                        placeholder="No file selected…"
-                        readonly
-                    />
-                    <button id="video_select" class="btn btn-outline">
-                        Browse
-                    </button>
-                </div>
-            </div>
+            <!-- ── Viewer area ── -->
+            <div class="viewer-area">
+                <div class="viewer-frame" id="viewerFrame">
 
-            <div id="progressContainer" style="display: none">
-                <div class="form-group">
-                    <div class="progress-header">
-                        <label class="label">Progress</label>
-                        <span id="progressText" class="muted-text"></span>
-                    </div>
-                    <div class="progress">
-                        <div id="progressBar" class="progress-bar"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="logContainer" style="display: none">
-                <div class="form-group">
-                    <label class="label">Log</label>
-                    <pre id="output" class="log-output"></pre>
-                </div>
-            </div>
-
-            <div class="button-row">
-                <button id="start_button" class="btn btn-primary">
-                    Generate
-                </button>
-                <button id="load_vcam" class="btn btn-outline">
-                    Load .vcam.json
-                </button>
-            </div>
-
-            <hr class="section-divider" />
-
-            <h2 class="section-title">Stitch Videos</h2>
-            <p class="description">
-                Select multiple camera videos to stitch into a panorama.
-            </p>
-
-            <div class="form-group">
-                <label class="label">Input Videos</label>
-                <div class="input-row">
-                    <button id="stitch_select" class="btn btn-outline">
-                        Select Files…
-                    </button>
-                </div>
-                <ul id="stitch_file_list" class="file-list"></ul>
-            </div>
-
-            <div id="stitchProgressContainer" style="display: none">
-                <div class="form-group">
-                    <div class="progress-header">
-                        <label class="label">Stitching</label>
-                        <span id="stitchProgressText" class="muted-text"></span>
-                    </div>
-                    <div class="progress">
-                        <div id="stitchProgressBar" class="progress-bar"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="button-row">
-                <button id="stitch_button" class="btn btn-primary" disabled>
-                    Stitch
-                </button>
-            </div>
-
-            <div id="viewerSection" style="display: none">
-                <div class="viewer-toolbar">
-                    <select id="viewerMode" class="select">
-                        <option value="panorama">Panorama</option>
-                        <option value="virtual">Virtual Camera</option>
-                    </select>
-                    <span id="timeDisplay" class="muted-text">0:00 / 0:00</span>
-                    <button id="export_button" class="btn btn-outline btn-sm">
-                        Export
-                    </button>
-                </div>
-
-                <div id="exportContainer" style="display: none">
-                    <div class="form-group">
-                        <div class="progress-header">
-                            <label class="label">Export</label>
-                            <span id="exportText" class="muted-text"></span>
-                        </div>
-                        <div class="progress">
-                            <div id="exportBar" class="progress-bar"></div>
+                    <div id="videoWrapper">
+                        <video id="viewerVideo" preload="auto"></video>
+                        <div id="videoPlaceholder" class="video-placeholder">
+                            No video loaded
                         </div>
                     </div>
-                </div>
-                <div id="videoWrapper">
-                    <video id="viewerVideo" preload="auto"></video>
-                </div>
-                <div class="playback-controls">
-                    <button id="playPause" class="btn btn-outline btn-sm">
-                        Play
-                    </button>
-                    <input
-                        id="scrubber"
-                        type="range"
-                        class="scrubber"
-                        min="0"
-                        max="100"
-                        step="0.001"
-                        value="0"
-                    />
+
+                    <!-- Top-left HUD: view mode buttons -->
+                    <div class="hud-top-left">
+                        <button id="btn_panorama" class="hud-btn active" title="Panorama">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 5.5C2.5 4 5 3 8 3s5.5 1 7 2.5v5C13.5 12 11 13 8 13s-5.5-1-7-2.5v-5z"/>
+                            </svg>
+                        </button>
+                        <button id="btn_follow" class="hud-btn" title="Follow" disabled>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="5" width="10" height="7" rx="1"/>
+                                <path d="M11 7.5l4-1.5v4l-4-1.5"/>
+                                <circle cx="6" cy="8.5" r="1.75"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Bottom HUD: playback controls -->
+                    <div class="hud-bottom">
+                        <button id="playPause" class="hud-btn" title="Play / Pause" disabled>
+                            <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+                                <path d="M3 1.5l8 5-8 5z"/>
+                            </svg>
+                        </button>
+                        <input
+                            id="scrubber"
+                            type="range"
+                            class="hud-scrubber"
+                            min="0"
+                            max="100"
+                            step="0.001"
+                            value="0"
+                            disabled
+                        />
+                        <span id="timeDisplay" class="hud-time">0:00 / 0:00</span>
+                    </div>
+
+                    <!-- Overlay panel (slides in over the video from the right) -->
+                    <div id="overlayPanel" class="overlay-panel" style="display:none">
+                        <div class="panel-header">
+                            <span id="panelTitle" class="panel-title">Stitch</span>
+                            <button id="panelClose" class="panel-close" title="Close">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                                    <path d="M1 1l10 10M11 1L1 11"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="panel-body">
+
+                            <!-- Stitch -->
+                            <div id="panel-stitch" class="panel-content">
+                                <p class="panel-desc">Select multiple camera videos to stitch into a panorama.</p>
+
+                                <div class="form-group">
+                                    <label class="label">Input Videos</label>
+                                    <button id="stitch_select" class="btn btn-outline btn-block">Select Files…</button>
+                                    <ul id="stitch_file_list" class="file-list"></ul>
+                                </div>
+
+                                <div id="stitchProgressContainer" class="form-group" style="display:none">
+                                    <div class="progress-header">
+                                        <span class="label">Progress</span>
+                                        <span id="stitchProgressText" class="muted-text"></span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="stitchProgressBar" class="progress-bar"></div>
+                                    </div>
+                                </div>
+
+                                <button id="stitch_button" class="btn btn-primary btn-block" disabled>Stitch</button>
+                            </div>
+
+                            <!-- Generate -->
+                            <div id="panel-generate" class="panel-content" style="display:none">
+                                <p class="panel-desc">Generate a virtual camera path from a panorama video.</p>
+
+                                <div class="form-group">
+                                    <label class="label">Video File</label>
+                                    <div class="input-row">
+                                        <input id="video_path" class="input" placeholder="No file selected…" readonly />
+                                        <button id="video_select" class="btn btn-outline btn-sm">Browse</button>
+                                    </div>
+                                </div>
+
+                                <div id="progressContainer" class="form-group" style="display:none">
+                                    <div class="progress-header">
+                                        <span class="label">Progress</span>
+                                        <span id="progressText" class="muted-text"></span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="progressBar" class="progress-bar"></div>
+                                    </div>
+                                </div>
+
+                                <div id="logContainer" class="form-group" style="display:none">
+                                    <label class="label">Log</label>
+                                    <pre id="output" class="log-output"></pre>
+                                </div>
+
+                                <div class="btn-col">
+                                    <button id="start_button" class="btn btn-primary btn-block">Generate</button>
+                                    <button id="load_vcam" class="btn btn-outline btn-block">Load .vcam.json</button>
+                                </div>
+                            </div>
+
+                            <!-- Export -->
+                            <div id="panel-export" class="panel-content" style="display:none">
+                                <p class="panel-desc">Export the follow-mode view as a video file.</p>
+
+                                <div id="exportContainer" class="form-group" style="display:none">
+                                    <div class="progress-header">
+                                        <span class="label">Progress</span>
+                                        <span id="exportText" class="muted-text"></span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="exportBar" class="progress-bar"></div>
+                                    </div>
+                                </div>
+
+                                <button id="export_button" class="btn btn-primary btn-block">Export</button>
+                            </div>
+
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </main>
+
+            <!-- ── Icon sidebar ── -->
+            <nav class="icon-sidebar">
+                <button class="icon-btn" data-panel="stitch" title="Stitch">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="2" width="6" height="5" rx="1"/>
+                        <rect x="9" y="2" width="6" height="5" rx="1"/>
+                        <path d="M4 7v2.5h8V7"/>
+                        <path d="M8 9.5V14"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" data-panel="generate" title="Generate">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2.5 13.5l8-8"/>
+                        <path d="M10.5 2l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5L8.5 4l1.5-.5.5-1.5z"/>
+                        <path d="M4 7l.3.85.85.3-.85.3L4 9.3l-.3-.85L2.85 8l.85-.3L4 7z"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" data-panel="export" title="Export">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 2v9M5 8l3 3 3-3"/>
+                        <path d="M2 13h12"/>
+                    </svg>
+                </button>
+            </nav>
+
+        </div>
     </body>
 </html>
