@@ -29,9 +29,7 @@ The `public/` directory contains a ready-to-use example:
 | `public/panorama.mp4` | Stitched panorama produced from the three feeds |
 | `public/panorama.vcam.json` | Pre-generated virtual camera path for the panorama |
 
-`cam0–2.mp4` are clips from the [Alfheim Dataset](https://datasets.simula.no/alfheim/) (Storås et al., Simula Research Laboratory), a publicly available multi-camera football recording dataset.
-
-To try the full workflow: stitch `cam0–2` into a panorama, then run Generate on the result. Or load `panorama.mp4` + `panorama.vcam.json` directly to skip straight to playback.
+You can get sample clips from the [Alfheim Dataset](https://datasets.simula.no/alfheim/) (Storås et al., Simula Research Laboratory), a publicly available multi-camera football recording dataset.
 
 ## Workspace layout
 
