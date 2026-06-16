@@ -35,48 +35,16 @@ You can get sample clips from the [Alfheim Dataset](https://datasets.simula.no/a
 
 ```
 OpenSideline/
-├── open_pano/          # Image stitching library (pure Rust, no OpenCV)
-│   └── src/
-│       ├── feature/             # SIFT keypoint detection & BRIEF descriptors
-│       │   ├── sift.rs          # DoG scale-space + orientation
-│       │   ├── brief.rs         # Binary descriptor
-│       │   └── matcher.rs       # Brute-force + ratio test matching
-│       └── stitch/
-│           ├── stitcher.rs      # Top-level stitcher API
-│           ├── homography.rs    # DLT + RANSAC homography
-│           ├── camera_estimator.rs  # Focal length estimation
-│           ├── bundle_adjuster.rs   # Levenberg-Marquardt refinement
-│           ├── cylstitcher.rs   # Cylindrical projection
-│           ├── warp.rs          # Per-pixel warp + alpha mask
-│           └── multiband.rs     # Multi-band (Laplacian) blending
+├── open_pano/          # Image stitching library, pure Rust, no OpenCV, ported from https://github.com/ppwwyyxx/OpenPano.git
 │
 ├── video_stitch/       # Video stitching: decode → stitch frames → encode
-│   └── src/
-│       ├── lib.rs           # stitch_videos() — progress-aware entry point
-│       ├── stitcher_state.rs # Recomputes transform every N keyframes
-│       ├── video_reader.rs  # ffmpeg per-stream decoder
-│       ├── video_writer.rs  # ffmpeg H.264 encoder
-│       ├── warp_map.rs      # Cached pixel warp map for fast apply
-│       └── converter.rs     # YUV ↔ float Mat conversion
 │
 ├── virtual_camera/     # Core library: detection, path generation, export
-│   └── src/
-│       ├── detector.rs          # ffmpeg decode + YOLOv10 inference per frame
-│       ├── path_generator.rs    # Smooth damp → Catmull-Rom keyframes
-│       ├── virtual_camera_path.rs  # VirtualCameraPath struct, save/load, bbox_at
-│       ├── exporter.rs          # ffmpeg encode: crop → scale → H264 MP4
-│       └── smooth_damp.rs       # Spring-damper implementation
 │
 ├── yolo_ort/           # YOLOv10 inference wrapper (ONNX Runtime)
 │
 ├── editor/             # Tauri desktop app
-│   ├── index.html
-│   ├── src/
-│   │   ├── main.ts     # App logic, viewer, interpolation, playback
-│   │   └── styles.css  # shadcn-style design tokens
-│   └── src-tauri/
-│       └── src/lib.rs  # Tauri commands + localvideo:// protocol
-│
+│   
 └── models/
     └── football.onnx   # YOLOv10 model
 ```
