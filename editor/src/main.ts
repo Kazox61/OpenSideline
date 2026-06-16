@@ -26,6 +26,89 @@ interface VirtualCameraData {
   samples: VirtualCameraSample[];
 }
 
+// ── stitch elements ───────────────────────────────────────────────────────────
+
+let stitchSelectButton: HTMLButtonElement | null;
+let stitchFileList: HTMLUListElement | null;
+let stitchButton: HTMLButtonElement | null;
+let stitchProgressContainer: HTMLDivElement | null;
+let stitchProgressBar: HTMLDivElement | null;
+let stitchProgressText: HTMLSpanElement | null;
+
+// ── stitch state ──────────────────────────────────────────────────────────────
+
+let stitchInputPaths: string[] = [];
+
+// ── stitch logic ──────────────────────────────────────────────────────────────
+
+async function selectStitchFiles() {
+  const files = await open({ multiple: true, directory: false });
+  if (!files || files.length === 0) return;
+  stitchInputPaths = Array.isArray(files) ? files : [files];
+  renderStitchFileList();
+  if (stitchButton) stitchButton.disabled = stitchInputPaths.length < 2;
+}
+
+function renderStitchFileList() {
+  if (!stitchFileList) return;
+  stitchFileList.innerHTML = "";
+  for (const p of stitchInputPaths) {
+    const li = document.createElement("li");
+    li.textContent = p.split("/").pop() ?? p;
+    li.title = p;
+    stitchFileList.appendChild(li);
+  }
+}
+
+async function stitchVideos() {
+  if (stitchInputPaths.length < 2 || !stitchButton) return;
+
+  const outputPath = await save({
+    defaultPath: "panorama.mp4",
+    filters: [{ name: "MP4 Video", extensions: ["mp4"] }],
+  });
+  if (!outputPath) return;
+
+  stitchButton.disabled = true;
+  if (stitchProgressContainer) stitchProgressContainer.style.display = "block";
+  if (stitchProgressBar) {
+    stitchProgressBar.style.width = "0%";
+    stitchProgressBar.classList.remove("success");
+  }
+
+  const unlisten: UnlistenFn = await listen<TaskProgress>(
+    "stitch-progress",
+    (e) => {
+      const { percentage, step } = e.payload;
+      if (stitchProgressBar) stitchProgressBar.style.width = `${percentage}%`;
+      if (stitchProgressText) stitchProgressText.textContent = step;
+      if (percentage >= 100) {
+        if (stitchProgressBar) stitchProgressBar.classList.add("success");
+        if (stitchButton) stitchButton.disabled = false;
+        if (videoPathInput) videoPathInput.value = outputPath;
+        unlisten();
+      }
+    },
+  );
+
+  try {
+    await invoke("stitch_videos_cmd", {
+      inputPaths: stitchInputPaths,
+      outputPath,
+    });
+    if (stitchProgressBar) stitchProgressBar.classList.add("success");
+    if (stitchProgressText) stitchProgressText.textContent = "Done";
+    if (stitchButton) stitchButton.disabled = false;
+    if (videoPathInput) videoPathInput.value = outputPath;
+    unlisten();
+  } catch (e) {
+    console.error("Stitch failed:", e);
+    if (stitchProgressText) stitchProgressText.textContent = `Error: ${e}`;
+    if (stitchButton) stitchButton.disabled = false;
+    unlisten();
+  }
+}
+
 // ── generation elements ───────────────────────────────────────────────────────
 
 let startButton: HTMLButtonElement | null;
@@ -330,6 +413,23 @@ async function start() {
 // ── bootstrap ─────────────────────────────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", () => {
+  // stitch
+  stitchSelectButton = document.querySelector<HTMLButtonElement>("#stitch_select");
+  stitchFileList = document.querySelector<HTMLUListElement>("#stitch_file_list");
+  stitchButton = document.querySelector<HTMLButtonElement>("#stitch_button");
+  stitchProgressContainer = document.querySelector<HTMLDivElement>("#stitchProgressContainer");
+  stitchProgressBar = document.querySelector<HTMLDivElement>("#stitchProgressBar");
+  stitchProgressText = document.querySelector<HTMLSpanElement>("#stitchProgressText");
+
+  stitchSelectButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    selectStitchFiles();
+  });
+  stitchButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    stitchVideos();
+  });
+
   // generation
   startButton = document.querySelector<HTMLButtonElement>("#start_button");
   progressContainer =

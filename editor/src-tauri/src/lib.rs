@@ -2,6 +2,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
 use virtual_camera::{export_video, VirtualCameraPath};
+use video_stitch::stitch_videos;
 
 #[tauri::command]
 async fn generate_virtual_camera(
@@ -63,6 +64,30 @@ async fn export_virtual_camera(
 async fn load_virtual_camera(json_path: String) -> Result<VirtualCameraPath, String> {
     tokio::task::spawn_blocking(move || {
         VirtualCameraPath::load(Path::new(&json_path)).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn stitch_videos_cmd(
+    app: AppHandle,
+    input_paths: Vec<String>,
+    output_path: String,
+) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        let refs: Vec<&str> = input_paths.iter().map(|s| s.as_str()).collect();
+        stitch_videos(&refs, &output_path, 1800, |p| {
+            app.emit(
+                "stitch-progress",
+                serde_json::json!({
+                    "percentage": if p.total > 0 { (p.frame as f64 / p.total as f64) * 100.0 } else { 0.0 },
+                    "step": format!("Stitching frame {}/{}", p.frame, p.total),
+                }),
+            )
+            .ok();
+        })
+        .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -215,7 +240,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             generate_virtual_camera,
             load_virtual_camera,
-            export_virtual_camera
+            export_virtual_camera,
+            stitch_videos_cmd
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

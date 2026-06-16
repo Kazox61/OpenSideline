@@ -1,3 +1,6 @@
 [workspace]
 resolver = "3"
 members = ["editor/src-tauri", "open_pano","virtual_camera","yolo_ort","video_stitch"]
+
+[profile.dev]
+opt-level = 3

@@ -58,6 +58,41 @@
                 </button>
             </div>
 
+            <hr class="section-divider" />
+
+            <h2 class="section-title">Stitch Videos</h2>
+            <p class="description">
+                Select multiple camera videos to stitch into a panorama.
+            </p>
+
+            <div class="form-group">
+                <label class="label">Input Videos</label>
+                <div class="input-row">
+                    <button id="stitch_select" class="btn btn-outline">
+                        Select Files…
+                    </button>
+                </div>
+                <ul id="stitch_file_list" class="file-list"></ul>
+            </div>
+
+            <div id="stitchProgressContainer" style="display: none">
+                <div class="form-group">
+                    <div class="progress-header">
+                        <label class="label">Stitching</label>
+                        <span id="stitchProgressText" class="muted-text"></span>
+                    </div>
+                    <div class="progress">
+                        <div id="stitchProgressBar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button id="stitch_button" class="btn btn-primary" disabled>
+                    Stitch
+                </button>
+            </div>
+
             <div id="viewerSection" style="display: none">
                 <div class="viewer-toolbar">
                     <select id="viewerMode" class="select">

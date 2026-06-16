@@ -1061,6 +1061,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
  "tokio",
+ "video_stitch",
  "virtual_camera",
 ]
 
