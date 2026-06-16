@@ -81,8 +81,8 @@ impl VirtualCameraPath {
             step: "Detecting players...".into(),
         });
 
-        let (targets, indices, fps, pano_size, total) =
-            detect_players(video_path, &mut yolo, 6, 2, 0.3, None, |frame, total| {
+        let (targets, indices, fps, pano_size, total, class_stats, player_dets) =
+            detect_players(video_path, &mut yolo, 2, 2, 0.3, None, |frame, total| {
                 let pct = 20.0 + (frame as f64 / total.max(1) as f64) * 50.0;
                 on_progress(GenerateProgress {
                     percentage: pct,
@@ -91,8 +91,32 @@ impl VirtualCameraPath {
             })
             .unwrap();
 
+        // Emit class detection summary so it appears in the editor log.
+        {
+            let mut msg = format!("Detected {player_dets} player detections (class 2).");
+            if !class_stats.is_empty() {
+                msg.push_str(" All classes: ");
+                let parts: Vec<String> = class_stats
+                    .iter()
+                    .take(6)
+                    .map(|(cls, cnt)| {
+                        let label = match cls {
+                            0 => "ball",
+                            1 => "goalkeeper",
+                            2 => "player",
+                            3 => "referee",
+                            _ => "other",
+                        };
+                        format!("{label}({cnt})")
+                    })
+                    .collect();
+                msg.push_str(&parts.join(", "));
+            }
+            on_progress(GenerateProgress { percentage: 72.0, step: msg });
+        }
+
         on_progress(GenerateProgress {
-            percentage: 70.0,
+            percentage: 75.0,
             step: "Computing camera path...".into(),
         });
 

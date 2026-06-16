@@ -73,7 +73,7 @@ pub fn detect_players(
     conf_threshold: f32,
     roi: Option<[u32; 4]>,
     on_frame: impl Fn(u32, u32),
-) -> Result<(Vec<Option<FrameTarget>>, Vec<u32>, f64, [u32; 2], u32), Box<dyn std::error::Error>> {
+) -> Result<(Vec<Option<FrameTarget>>, Vec<u32>, f64, [u32; 2], u32, Vec<(usize, usize)>, usize), Box<dyn std::error::Error>> {
     ffmpeg::init()?;
 
     let mut ictx = ffmpeg::format::input(video_path)?;
@@ -210,5 +210,5 @@ pub fn detect_players(
         eprintln!("  → Check that model_name matches the ONNX file (yolov8 vs yolov10) and that player_class is correct");
     }
 
-    Ok((targets, frame_indices, fps, panorama_size, total_frames))
+    Ok((targets, frame_indices, fps, panorama_size, total_frames, class_vec, total_player_dets))
 }

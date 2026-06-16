@@ -23,10 +23,10 @@ pub struct PathConfig {
 impl Default for PathConfig {
     fn default() -> Self {
         Self {
-            smooth_sec: 1.5,
+            smooth_sec: 2.0,
             max_speed_frac: None,
-            lookahead_sec: 0.0,
-            zoom: ZoomMode::Fixed,
+            lookahead_sec: 1.0,
+            zoom: ZoomMode::Adaptive,
             base_zoom: 0.4,
             zoom_gain: 1.6,
             keyframe_rate: 4,
@@ -139,10 +139,16 @@ pub fn compute_virtual_camera_path(
 
     let max_speed = config.max_speed_frac.map(|f| f * pw as f32);
 
-    // look-ahead: shift the aim point forward using a finite-difference velocity estimate
+    // look-ahead: shift the aim point forward using a smoothed velocity estimate.
+    // Matches Python: smooth the signal, differentiate, smooth the velocity, then aim ahead.
+    // The double smoothing suppresses the noise that a raw finite-difference introduces.
     let (tx_aim, ty_aim): (Vec<f32>, Vec<f32>) = if config.lookahead_sec > 0.0 {
-        let vx = finite_diff_velocity(&tx, dt);
-        let vy = finite_diff_velocity(&ty, dt);
+        // window = 0.3 * smooth_sec / dt, same formula as Python's _moving_average
+        let win = ((0.3 * config.smooth_sec / dt).round() as usize).max(3);
+        let tx_s = moving_average(&tx, win);
+        let ty_s = moving_average(&ty, win);
+        let vx = moving_average(&finite_diff_velocity(&tx_s, dt), win);
+        let vy = moving_average(&finite_diff_velocity(&ty_s, dt), win);
         let la = config.lookahead_sec;
         (
             tx.iter().zip(vx.iter()).map(|(x, v)| x + v * la).collect(),
@@ -193,7 +199,7 @@ pub fn compute_virtual_camera_path(
     // downsample to keyframe_rate via linear interpolation over the full frame range
     let step = (fps as f32 / config.keyframe_rate as f32).round().max(1.0) as u32;
     let mut kf_indices: Vec<u32> = (0..total_frames).step_by(step as usize).collect();
-    if kf_indices.last() != Some(&(total_frames - 1)) {
+    if total_frames > 0 && kf_indices.last() != Some(&(total_frames - 1)) {
         kf_indices.push(total_frames - 1);
     }
 
@@ -242,4 +248,22 @@ fn finite_diff_velocity(signal: &[f32], dt: f32) -> Vec<f32> {
     }
     v[n - 1] = (signal[n - 1] - signal[n - 2]) / dt;
     v
+}
+
+/// Box-filter moving average (odd window, edge-clamped), matching Python's
+/// `_moving_average(v, k)` with `np.convolve(v, kern, mode="same")`.
+fn moving_average(values: &[f32], window: usize) -> Vec<f32> {
+    let n = values.len();
+    if window <= 1 || n == 0 {
+        return values.to_vec();
+    }
+    let w = if window % 2 == 0 { window + 1 } else { window };
+    let half = w / 2;
+    (0..n)
+        .map(|i| {
+            let lo = i.saturating_sub(half);
+            let hi = (i + half + 1).min(n);
+            values[lo..hi].iter().sum::<f32>() / (hi - lo) as f32
+        })
+        .collect()
 }

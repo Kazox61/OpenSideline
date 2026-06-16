@@ -419,6 +419,8 @@ async function generateVirtualCamera() {
     showViewer(data);
   } catch (e) {
     console.error(e);
+    if (outputParagraph) outputParagraph.textContent += `Error: ${e}\n`;
+    if (progressText) progressText.textContent = "Failed";
     if (startButton) startButton.disabled = false;
     unlisten();
   }
