@@ -61,6 +61,7 @@ impl VirtualCameraPath {
 
     pub fn generate(
         video_path: &Path,
+        model_path: &Path,
         on_progress: impl Fn(GenerateProgress) + Send + 'static,
     ) -> VirtualCameraPath {
         on_progress(GenerateProgress {
@@ -69,7 +70,7 @@ impl VirtualCameraPath {
         });
 
         let mut yolo = YoloSession::new(
-            Path::new("models/football.onnx"),
+            model_path,
             (640, 640),
             true,
             "yolov10".into(),

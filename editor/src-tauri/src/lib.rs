@@ -1,6 +1,6 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use virtual_camera::{export_video, VirtualCameraPath};
 use video_stitch::stitch_videos;
 
@@ -9,9 +9,15 @@ async fn generate_virtual_camera(
     app: AppHandle,
     video_path: String,
 ) -> Result<VirtualCameraPath, String> {
+    let model_path = app
+        .path()
+        .resource_dir()
+        .map_err(|e| e.to_string())?
+        .join("models/football.onnx");
+
     tokio::task::spawn_blocking(move || {
         let path = Path::new(&video_path);
-        let virtual_camera_path = VirtualCameraPath::generate(path, move |progress| {
+        let virtual_camera_path = VirtualCameraPath::generate(path, &model_path, move |progress| {
             app.emit(
                 "generate-progress",
                 serde_json::json!({
