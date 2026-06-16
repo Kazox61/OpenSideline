@@ -19,16 +19,6 @@ A desktop application for generating and viewing virtual camera paths from wide-
 
 ## Example files
 
-The `public/` directory contains a ready-to-use example:
-
-| File | Description |
-|---|---|
-| `public/cam0.mp4` | Left camera feed |
-| `public/cam1.mp4` | Centre camera feed |
-| `public/cam2.mp4` | Right camera feed |
-| `public/panorama.mp4` | Stitched panorama produced from the three feeds |
-| `public/panorama.vcam.json` | Pre-generated virtual camera path for the panorama |
-
 You can get sample clips from the [Alfheim Dataset](https://datasets.simula.no/alfheim/) (Storås et al., Simula Research Laboratory), a publicly available multi-camera football recording dataset.
 
 ## Workspace layout
